@@ -1,0 +1,84 @@
+variable "glauth_version" {
+  default = "1.1.2"
+}
+
+variable "arch_suffix" {
+  default = "64"
+}
+
+locals {
+  unit_name = "glauth"
+}
+
+resource "sys_file" "nimnews" {
+  filename        = "/usr/local/bin/glauth"
+  source          = "https://github.com/glauth/glauth/releases/download/v${var.glauth_version}/glauth${var.arch_suffix}"
+  file_permission = 0755
+}
+
+resource "sys_file" "conf" {
+  filename = "/etc/glauth.conf"
+  content  = file("${path.module}/glauth.conf")
+}
+
+module "glauth_proxy_service" {
+  source = ".../sd-proxy.tf"
+  unit_name = "${local.unit_name}"
+  ports = {
+    http4 = [80, 10080]
+    http6 = [80, 10080]
+  }
+}
+
+resource "sys_file" "glauth_proxy_service" {
+  filename = "/etc/systemd/system/${local.unit_name}-proxy.service"
+  content = <<EOF
+[Unit]
+Requires=addr@${local.unit_name}.service
+After=addr@${local.unit_name}.service
+
+[Service]
+EnvironmentFile=/run/addr/${local.unit_name}.env
+${module.my_service_proxy_service.service}
+
+EOF
+}
+
+```
+
+resource "sys_file" "glauth_service" {
+  filename = "/etc/systemd/system/${local.unit_name}.service"
+  content  = <<CONF
+[Unit]
+After=network.target
+Requires=addr@${local.unit_name}.service
+After=addr@${local.unit_name}.service
+
+[Service]
+EnvironmentFile=/run/addr/${local.unit_name}.env
+ExecStart=/usr/local/bin/glauth \
+  -c /etc/glauth.conf
+'
+
+CONF
+}
+
+resource "sys_systemd_unit" "service" {
+  name = "${local.unit_name}.service"
+  enable = false
+  start  = false
+  restart_on = {
+    service_unit = sys_file.glauth_service.id
+  }
+}
+
+resource "sys_systemd_unit" "proxy" {
+  name = "${local.unit_name}-proxy.service"
+  enable = true
+  start  = true
+  restart_on = {
+    service_unit = sys_file.glauth_service.id
+    socket_unit  = sys_file.glauth_proxy_service.id
+  }
+  depends_on = [ sys_systemd_unit.service ]
+}
