@@ -71,5 +71,8 @@ output "bin" {
   value = local.bin
 }
 
+output "done" {
+  value = local.with_l4 ? sys_shell_script.id : sys_package.caddy.id
+}
 
 
