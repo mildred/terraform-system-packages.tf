@@ -72,7 +72,7 @@ output "bin" {
 }
 
 output "done" {
-  value = local.with_l4 ? sys_shell_script.id : sys_package.caddy.id
+  value = local.with_l4 ? sys_shell_script.caddy_l4.id : sys_package.caddy.id
 }
 
 
