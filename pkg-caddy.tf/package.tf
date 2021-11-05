@@ -32,6 +32,9 @@ resource "sys_package" "caddy" {
 # xcaddy
 #
 
+data "sys_os_release" "os_release" {
+}
+
 resource "sys_file" "xcaddy_ar" {
   count            = local.with_l4 ? 1 : 0
   target_directory = "/root/xcaddy"
@@ -50,7 +53,7 @@ resource "sys_package" "golang" {
   count          = local.with_l4 ? 1 : 0
   type           = "deb"
   name           = "golang"
-  target_release = "buster-backports"
+  target_release = data.sys_os_release.os_release.version_codename == "buster" ? "buster-backports" : ""
 }
 
 resource "sys_shell_script" "caddy_l4" {
