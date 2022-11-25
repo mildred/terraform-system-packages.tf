@@ -29,6 +29,36 @@ resource "sys_package" "docker" {
   name = "docker.io"
 }
 
+resource "sys_file" "docker-system-prune_timer" {
+  filename = "/etc/systemd/system/docker-system-prune.timer"
+  content  = <<CONF
+[Timer]
+OnCalendar=weekly
+
+[Install]
+WantedBy=multi-user.target
+CONF
+}
+
+resource "sys_file" "docker-system-prune_service" {
+  filename = "/etc/systemd/system/docker-system-prune.service"
+  content  = <<CONF
+[Service]
+ExecStart=docker system prune -f
+
+CONF
+}
+
+resource "sys_systemd_unit" "docker-system-prune" {
+  depends_on = [
+    sys_file.docker-system-prune_service,
+    sys_file.docker-system-prune_timer
+  ]
+  name = "docker-system-prune.timer"
+  enable = true
+  start = true
+}
+
 output "default_ipv6_cidr" {
   value = local.fixed_cidr_v6
 }
