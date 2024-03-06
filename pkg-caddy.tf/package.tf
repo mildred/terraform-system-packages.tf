@@ -2,10 +2,20 @@ variable "layer4" {
   default = false
 }
 
+data "uname" "localhost" {
+}
+
+locals {
+  arch = (data.uname.localhost.machine == "x86_64" ? "amd64" :
+          data.uname.localhost.machine == "aarch64" ? "arm64" :
+          data.uname.localhost.machine == "unknown" ? "arm64" :
+          data.uname.localhost.machine)
+}
+
 locals {
   with_l4 = var.layer4 != false
   bin     = local.with_l4 ? "/usr/local/bin/caddy" : "/usr/bin/caddy"
-  dl_url  = "https://caddyserver.com/api/download?os=linux&arch=amd64&p=github.com%2Fmholt%2Fcaddy-l4&p=github.com%2Fgreenpau%2Fcaddy-security"
+  dl_url  = "https://caddyserver.com/api/download?os=linux&arch=${local.arch}&p=github.com%2Fmholt%2Fcaddy-l4&p=github.com%2Fgreenpau%2Fcaddy-security"
   manual_caddy_update = local.with_l4 && false # Included in Caddy
 }
 
