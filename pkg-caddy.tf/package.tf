@@ -2,14 +2,15 @@ variable "layer4" {
   default = false
 }
 
-data "uname" "localhost" {
+data "sys_shell_script" "uname-m" {
+  read = "uname -m | xargs printf %s"
 }
 
 locals {
-  arch = (data.uname.localhost.machine == "x86_64" ? "amd64" :
-          data.uname.localhost.machine == "aarch64" ? "arm64" :
-          data.uname.localhost.machine == "unknown" ? "arm64" :
-          data.uname.localhost.machine)
+  arch = lookup({
+    "x86_64"  = "amd64",
+    "aarch64" = "arm64"
+  }, data.sys_shell_script.uname-m.content, data.sys_shell_script.uname-m.content)
 }
 
 locals {
